@@ -1,0 +1,12 @@
+{
+  "name": "draftlens",
+  "private": true,
+  "scripts": {
+    "dev:web": "npm run dev --prefix apps/web",
+    "build:web": "npm run build --prefix apps/web",
+    "lint:web": "npm run lint --prefix apps/web",
+    "validate-seo:web": "npm run validate-seo --prefix apps/web",
+    "test:seo:web": "npm run test:seo --prefix apps/web",
+    "verify:web": "npm run validate-seo --prefix apps/web && npm run test:seo --prefix apps/web && npm run lint --prefix apps/web && npm run build --prefix apps/web"
+  }
+}

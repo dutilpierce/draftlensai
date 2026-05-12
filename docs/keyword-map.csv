@@ -1,0 +1,32 @@
+path,primary_keyword_theme,secondary_themes,funnel_stage,notes
+/,AI document review software,multi-model LLM review; DOCX proofreading; contract review workflow,commercial,"Home: hero + structured scan + CTA"
+/features,DraftLens features hub,multi-model; review mode; fix mode,commercial,"Index of capability pages"
+/product,DraftLens product overview,document review software; DOCX,commercial,"SoftwareApplication JSON-LD"
+/pricing,DraftLens pricing,subscription; free tier,commercial,"Points to app for live caps"
+/about,About DraftLens,company story; document AI,trust,"Principles + trust"
+/contact,Contact DraftLens,support; sales,trust,"No fake response-time guarantees"
+/editorial-policy,editorial policy academy research,accuracy; methodology disclosure,trust,"E-E-A-T guardrails"
+/methodology,DraftLens methodology,review pipeline; partial consensus,commercial+trust,"How the product thinks about review"
+/features/multi-model-review,multi-model document review,Claude GPT Gemini; merge convergence,commercial,"Core differentiator"
+/features/review-mode,DOCX review mode,structured issues; digest export,commercial,"Non-destructive review"
+/features/fix-mode,DOCX fix mode,proposed edits; corrected package,commercial,"Change artifacts"
+/features/supporting-files,supporting evidence files,Pro; context attachments,commercial,"Honest Pro scope"
+/features/do-not-change-locks,do not change clauses,DOCX locks; voice preservation,commercial,"Legal-style control"
+/use-cases,use cases document review,verticals hub,commercial,"Hub page"
+/use-cases/legal-document-review,legal document AI review,contracts; compliance posture,vertical,"Not legal advice disclaimer"
+/use-cases/business-document-proofreading,business document proofreading,memos; reports,vertical,
+/use-cases/contract-redlining,contract redlining workflow,Word track changes; review ledger,vertical,
+/use-cases/long-document-proofreading,long document proofreading,manuscripts; consistency,vertical,
+/use-cases/academic-paper-review,academic paper review AI,research integrity; citations,vertical,"Honest limitations"
+/compare,software comparisons DraftLens,Grammarly; ChatGPT; Claude,commercial,"Hub"
+/compare/draftlens-vs-grammarly,DraftLens vs Grammarly,writing assistant vs manuscript review,comparison,"Workflow fit not trash talk"
+/compare/draftlens-vs-chatgpt,DraftLens vs ChatGPT,chat UI vs structured pipeline,comparison,
+/compare/draftlens-vs-claude,DraftLens vs Claude alone,single model vs multi-model,comparison,
+/compare/best-ai-proofreading-tools,best AI proofreading tools selection,evaluation criteria,informational+commercial,"No fake rankings"
+/academy,practical document review guides,Word; proofreading; voice,informational,"Hub"
+/academy/how-to-redline-a-word-document,how to redline Word document,track changes; comments,informational,
+/academy/how-to-proofread-a-long-document,how to proofread long document,checklist; structure,informational,
+/academy/how-to-preserve-voice-while-editing,preserve voice editing,style guide; locks,informational,
+/research,research methodology transparency,benchmark framework,trust+informational,"Hub"
+/research/benchmark-methodology,document review benchmark methodology,rubrics; disclosure,trust,"No vendor scores"
+/research/ai-document-review-benchmark,AI document review benchmark framework,research transparency; tasks,informational,"Explicitly no numeric vendor rankings until real runs"
