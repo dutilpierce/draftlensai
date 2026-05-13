@@ -29,7 +29,7 @@ export function SectionShell({
       children
     ) : (
       <div
-        className={`${SECTION_BAND[tone]} -mx-5 rounded-2xl border border-line/55 px-5 py-7 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.45)] ring-1 ring-ink-900/[0.045] sm:-mx-6 sm:px-6 sm:py-8`}
+        className={`${SECTION_BAND[tone]} -mx-5 rounded-2xl border border-line/70 px-5 py-7 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.45)] ring-1 ring-ink-900/[0.07] sm:-mx-6 sm:px-6 sm:py-8`}
       >
         {children}
       </div>
@@ -65,7 +65,7 @@ export function SectionHeading({
 /** Scan-friendly one-liner + optional children. */
 export function IntroBlock({ kicker, children }: { kicker?: ReactNode; children: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-lineWarm/80 bg-surface-card-warm/92 p-5 shadow-sm sm:p-6">
+    <div className="rounded-2xl border border-lineWarm bg-surface-card-warm/92 p-5 shadow-sm ring-1 ring-ink-900/[0.05] sm:p-6">
       {kicker ? <p className="text-sm font-medium text-ink-800">{kicker}</p> : null}
       <div className={kicker ? "mt-2 text-base leading-relaxed text-ink-600" : "text-base leading-relaxed text-ink-600"}>
         {children}
@@ -85,7 +85,7 @@ export function SummaryRow({ children }: { children: ReactNode }) {
 
 export function SummaryCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="min-w-0 flex-1 rounded-2xl border border-lineSubtle/85 bg-surface-card-warm/93 px-4 py-4 shadow-sm sm:min-w-[200px] sm:px-5 sm:py-5">
+    <div className="min-w-0 flex-1 rounded-2xl border border-lineSubtle bg-surface-card-warm/93 px-4 py-4 shadow-sm ring-1 ring-ink-900/[0.05] sm:min-w-[200px] sm:px-5 sm:py-5">
       <h3 className="text-sm font-semibold text-ink-950">{title}</h3>
       <div className="mt-2 text-sm leading-relaxed text-ink-600">{children}</div>
     </div>
@@ -96,7 +96,7 @@ export function FeatureCard({ href, title, summary, accent }: { href: string; ti
   return (
     <Link
       href={href}
-      className="group flex flex-col rounded-2xl border border-lineSubtle/88 bg-surface-card-cool/94 p-5 shadow-sm transition hover:border-ink-300/35 hover:bg-surface-card hover:shadow-card"
+      className="group flex flex-col rounded-2xl border border-lineSubtle bg-surface-card-cool/94 p-5 shadow-sm ring-1 ring-ink-900/[0.04] transition hover:border-ink-300/40 hover:bg-surface-card hover:shadow-card"
     >
       <h3 className="text-base font-semibold tracking-tight text-ink-950 group-hover:text-ink-900">{title}</h3>
       <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-600">{summary}</p>
@@ -121,7 +121,7 @@ export function UseCaseCard({
   return (
     <Link
       href={href}
-      className="group flex flex-col rounded-2xl border border-lineSubtle/88 bg-surface-card-cool/94 p-5 shadow-sm transition hover:border-ink-300/35 hover:bg-surface-card hover:shadow-card"
+      className="group flex flex-col rounded-2xl border border-lineSubtle bg-surface-card-cool/94 p-5 shadow-sm ring-1 ring-ink-900/[0.04] transition hover:border-ink-300/40 hover:bg-surface-card hover:shadow-card"
     >
       <h3 className="text-base font-semibold tracking-tight text-ink-950">{title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-ink-600">{summary}</p>
@@ -150,7 +150,7 @@ export function ComparisonCard({
   return (
     <Link
       href={href}
-      className="group flex flex-col rounded-2xl border border-lineSubtle/88 bg-surface-card-cool/94 p-5 shadow-sm transition hover:border-ink-300/35 hover:bg-surface-card hover:shadow-card"
+      className="group flex flex-col rounded-2xl border border-lineSubtle bg-surface-card-cool/94 p-5 shadow-sm ring-1 ring-ink-900/[0.04] transition hover:border-ink-300/40 hover:bg-surface-card hover:shadow-card"
     >
       <h3 className="text-base font-semibold tracking-tight text-ink-950">{title}</h3>
       <p className="mt-2 text-xs italic text-ink-500">“{question}”</p>
@@ -178,7 +178,7 @@ export function AcademyCard({
   return (
     <Link
       href={href}
-      className="group flex flex-col rounded-2xl border border-lineSubtle/88 bg-surface-card-cool/94 p-5 shadow-sm transition hover:border-ink-300/35 hover:bg-surface-card hover:shadow-card"
+      className="group flex flex-col rounded-2xl border border-lineSubtle bg-surface-card-cool/94 p-5 shadow-sm ring-1 ring-ink-900/[0.04] transition hover:border-ink-300/40 hover:bg-surface-card hover:shadow-card"
     >
       <h3 className="text-base font-semibold tracking-tight text-ink-950">{title}</h3>
       <p className="mt-1 text-xs text-ink-500">For {reader}</p>
@@ -194,7 +194,7 @@ export function AcademyCard({
 
 export function MethodologyCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-lineSubtle/85 bg-surface-card-warm/90 p-5 shadow-sm sm:p-6">
+    <div className="rounded-2xl border border-lineSubtle bg-surface-card-warm/90 p-5 shadow-sm ring-1 ring-ink-900/[0.05] sm:p-6">
       <h3 className="text-sm font-semibold text-ink-950">{title}</h3>
       <div className="mt-3 text-sm leading-relaxed text-ink-600">{children}</div>
     </div>
@@ -217,10 +217,10 @@ export function PricingCard({
 }) {
   const shell =
     tint === "warm"
-      ? "border-lineWarm/85 bg-surface-card-warm/95"
+      ? "border-lineWarm bg-surface-card-warm/95 ring-1 ring-ink-900/[0.05]"
       : tint === "cool"
-        ? "border-lineSubtle/88 bg-surface-card-cool/95"
-        : "border-line/90 bg-surface-card/95";
+        ? "border-lineSubtle bg-surface-card-cool/95 ring-1 ring-ink-900/[0.05]"
+        : "border-line bg-surface-card/95 ring-1 ring-ink-900/[0.04]";
 
   return (
     <div className={`flex flex-col rounded-2xl border p-6 shadow-sm sm:p-7 ${shell}`}>
@@ -242,7 +242,7 @@ export function KeyPointsGrid({ items }: { items: { title: string; body: ReactNo
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       {items.map((it) => (
-        <div key={it.title} className="rounded-xl border border-lineSubtle/75 bg-surface-card-warm/80 px-4 py-4">
+        <div key={it.title} className="rounded-xl border border-lineSubtle bg-surface-card-warm/80 px-4 py-4 shadow-sm ring-1 ring-ink-900/[0.04]">
           <h3 className="text-sm font-semibold text-ink-900">{it.title}</h3>
           <div className="mt-2 text-sm leading-relaxed text-ink-600">{it.body}</div>
         </div>
@@ -269,8 +269,8 @@ export function StepRow({
       {steps.map((s, i) => (
         <li
           key={s.step}
-          className={`relative rounded-2xl border p-4 sm:p-5 ${
-            i % 2 === 0 ? "border-lineSubtle/80 bg-surface-card-warm/78" : "border-lineSubtle/80 bg-surface-card-cool/72"
+          className={`relative rounded-2xl border p-4 shadow-sm ring-1 ring-ink-900/[0.04] sm:p-5 ${
+            i % 2 === 0 ? "border-lineSubtle bg-surface-card-warm/78" : "border-lineSubtle bg-surface-card-cool/72"
           }`}
         >
           <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-400">{s.step}</span>

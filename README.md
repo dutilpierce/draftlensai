@@ -133,6 +133,14 @@ Copy from `.env.example` into `apps/api/.env` and `apps/web/.env.local` as appli
 | `NEXT_PUBLIC_APP_URL` / `DRAFTLENS_PUBLIC_APP_URL` | Recommended | Public origin for redirects |
 | `STRIPE_SUCCESS_URL` / `STRIPE_CANCEL_URL` | No | Override Checkout return URLs |
 | `DRAFTLENS_CORS_ORIGINS` | No | API CORS allowlist |
+| `DRAFTLENS_GOOGLE_CLIENT_ID` | For Drive picker + GIS token | Public; exposed to browser via `GET /api/cloud/config` |
+| `DRAFTLENS_GOOGLE_PICKER_API_KEY` | For Google Picker | Public; same config route |
+| `DRAFTLENS_GOOGLE_CLIENT_SECRET` | Reserved | Not used by the current GIS + Picker flow; keep empty or set for future server-side OAuth |
+| `DRAFTLENS_API_PUBLIC_URL` | Recommended in prod | Absolute URL of the API (CORS, absolute download links) |
+| `DRAFTLENS_DROPBOX_APP_KEY` / `DRAFTLENS_DROPBOX_APP_SECRET` | Optional cloud | Dropbox Chooser + PKCE token exchange |
+| `DRAFTLENS_MICROSOFT_CLIENT_ID` / `DRAFTLENS_MICROSOFT_CLIENT_SECRET` | Optional cloud | OneDrive picker + PKCE token exchange |
+
+See **`docs/google-drive-setup.md`** and **`docs/cloud-file-integration.md`** for console steps and redirect URIs.
 
 ### Web — `apps/web/.env.local`
 
@@ -151,6 +159,11 @@ Copy from `.env.example` into `apps/api/.env` and `apps/web/.env.local` as appli
 6. Watch **Status** (SSE): multi-model review → bounded debate when conflicts exist → arbiter → render/export.
 7. In **Summary**, confirm stats and **Download** links; confirm retention line when applicable.
 8. **Pro:** `stripe listen --forward-to 127.0.0.1:8000/api/billing/webhook`, set `STRIPE_WEBHOOK_SECRET`, use **Upgrade** → complete Checkout → return with `?billing=success` → entitlements refresh; **Manage billing** opens Stripe Portal.
+
+## Google Drive & cloud import/export
+
+- **`docs/google-drive-setup.md`** — Google Cloud checklist (APIs, OAuth client type, scopes, JavaScript origins, Picker API key restrictions, production and Vercel preview URLs, local dev).
+- **`docs/cloud-file-integration.md`** — HTTP contract between Next.js and FastAPI (`/api/cloud/*`), token handling, and import/export behavior.
 
 ## Product checklist (MVP)
 
@@ -175,8 +188,8 @@ Copy from `.env.example` into `apps/api/.env` and `apps/web/.env.local` as appli
 
 ## Known limitations (concise)
 
-- Main manuscript is **DOCX-only** in v1.
-- Supporting files are **evidence-only**; PDF is supported there, not as main.
+- Main manuscript is **DOCX or PDF** (fix mode on PDF produces a new Word file from extracted text, not an edited PDF).
+- Supporting files are **evidence-only** (PDF, Word, text, Markdown where enabled).
 - Native Word **Track Changes** is not guaranteed.
 - No **team** workspaces or shared accounts.
 - No **full auth** (email session cookie only).

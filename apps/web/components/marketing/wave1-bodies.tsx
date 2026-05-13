@@ -36,8 +36,8 @@ export function HomeBody() {
             convergence, and clear partial review when models or limits disagree.
           </SummaryCard>
           <SummaryCard title="Who it is for">
-            Teams that already care about voice, citations, and “do not change” clauses—and operators who need pipeline
-            stages they can export and defend.
+            Teams that already care about voice, citations, and “do not change” clauses—and people who run recurring
+            reviews and need step-by-step outputs they can export and defend.
           </SummaryCard>
           <SummaryCard title="Why it is different">
             Disagreement is first-class data: merged ledgers, explicit stages, and honest labeling instead of fake
@@ -62,8 +62,8 @@ export function HomeBody() {
             },
             {
               step: "03",
-              title: "Ship artifacts",
-              text: "Download structured findings and exports aligned to the pipeline—then continue in Word (DOCX) or your PDF workflow with humans in control.",
+              title: "Download results",
+              text: "Download structured findings and stage-aligned exports (DOCX, PDF, ledgers)—then continue in Word or your PDF workflow with humans in control.",
             },
           ]}
         />
@@ -80,7 +80,7 @@ export function HomeBody() {
           <h2 className="!mt-10 text-xl font-semibold text-ink-950">Who it is for</h2>
           <ul>
             <li>Teams that already care about voice, citations, and “do not change” clauses.</li>
-            <li>Operators who need exports and pipeline stages they can audit, not a black box.</li>
+            <li>People who coordinate reviews and need exports with clear step labels they can audit—not a black box.</li>
             <li>Workloads where partial consensus is honest: DraftLens labels partial reviews instead of pretending unanimity.</li>
           </ul>
         </ProseColumn>
@@ -106,7 +106,7 @@ export function HomeBody() {
           <p className="text-base font-medium text-white">Ready to run a manuscript?</p>
           <p className="mt-2 text-sm text-white/85">
             Open the live app to upload a <strong>DOCX</strong> or <strong>PDF</strong>, see entitlements, and download
-            results from a real job—not a marketing demo.
+            results from a real job—not placeholder output.
           </p>
           <p className="mt-5">
             <a
@@ -127,9 +127,9 @@ export function ProductBody() {
     <>
       <IntroBlock kicker="What DraftLens is">
         <p>
-          A manuscript-first pipeline for <strong>DOCX or PDF</strong>: upload a file, run structured multi-model review,
-          merge findings into a ledger, and download artifacts aligned to explicit stages. Optional supporting evidence and
-          do-not-change locks exist to keep reviewers grounded and conservative where you need them.
+          <strong>DOCX or PDF:</strong> upload a manuscript, run structured multi-model review, and download clear
+          deliverables—a prioritized issue ledger, digest, and stage-aligned exports. Optional supporting evidence and
+          do-not-change locks keep reviewers grounded and conservative where you need them.
         </p>
       </IntroBlock>
 
@@ -155,7 +155,7 @@ export function ProductBody() {
         <SectionHeading eyebrow="Who it is for">Teams that get the most value</SectionHeading>
         <ProseColumn>
           <ul>
-            <li>Operators who need repeatable outputs every run—not one-off brilliant answers.</li>
+            <li>Teams that need repeatable outputs every run—not one-off brilliant answers.</li>
             <li>Reviewers who care about disagreement being visible, not smoothed away.</li>
             <li>Authors and counsel who need locks and evidence boundaries to reduce accidental edits.</li>
           </ul>
@@ -215,7 +215,7 @@ export function PricingBody() {
           name="Pro"
           badge="For production review"
           tint="cool"
-          footnote="Manage billing from the in-app portal when subscribed; entitlements always win over marketing copy."
+          footnote="Manage billing from the in-app portal when subscribed; entitlements always win over website copy."
         >
           <ul className="list-disc space-y-2 pl-4">
             <li>Fix mode and supporting evidence workflows where enabled for your deployment.</li>
@@ -346,8 +346,8 @@ export function MethodologyBody() {
     <>
       <IntroBlock kicker="What this page answers">
         <p>
-          How DraftLens structures reviewer output, merges findings, routes conflict, and applies bounded convergence—
-          written for technical readers and procurement teams who need an inspectable story, not a black box.
+          In plain terms: how DraftLens structures reviewer output, merges findings, routes conflict, and applies bounded
+          convergence. Deeper technical detail for readers who need an inspectable story—not a black box.
         </p>
       </IntroBlock>
 
@@ -414,7 +414,7 @@ export function FeatureMultiModelBody() {
         become inspectable data instead of silent majority votes.
       </p>
       <p className="text-sm text-ink-500">
-        This is not “more models for marketing.” It is a hedge against correlated mistakes when one vendor’s defaults miss
+        This is not “more models for show.” It is a hedge against correlated mistakes when one vendor’s defaults miss
         a risk pattern another catches.
       </p>
     </>,
@@ -1913,7 +1913,7 @@ export function UseCasesHubBody() {
         <SectionHeading eyebrow="Operators">If you are choosing for a team</SectionHeading>
         <ProseColumn>
           <p>
-            Read <a href="/methodology">methodology</a> for pipeline behavior, then map your QC gates to{" "}
+            Read <a href="/methodology">methodology</a> for how each run behaves end to end, then map your QC gates to{" "}
             <a href="/features/review-mode">review mode</a> vs <a href="/features/fix-mode">fix mode</a>. Legal-adjacent
             teams should skim <a href="/use-cases/legal-document-review">legal</a> and{" "}
             <a href="/use-cases/contract-redlining">contracts</a> even if your primary workload is “just memos.”
@@ -1932,8 +1932,8 @@ export function CompareHubBody() {
       <IntroBlock kicker="How to use comparisons">
         <p>
           These pages help you decide <strong>workflow fit</strong>: drafting-time assistance vs manuscript-time review,
-          chat flexibility vs job artifacts, single-model depth vs structured multi-model merge. They are not unverified
-          feature matrices or pricing claims.
+          chat flexibility vs structured job deliverables (reports, ledgers, downloads), single-model depth vs structured
+          multi-model merge. They are not unverified feature matrices or pricing claims.
         </p>
       </IntroBlock>
 

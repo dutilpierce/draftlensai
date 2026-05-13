@@ -18,14 +18,14 @@ export default function AppSectionLayout({ children }: { children: ReactNode }) 
             className="rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-800"
           >
             <DraftLensLogo size="sm" priority />
-            <span className="sr-only">DraftLens marketing site</span>
+            <span className="sr-only">DraftLens home page</span>
           </Link>
           <div className="text-right text-xs text-ink-500">
             <Link href="/" className="font-medium text-ink-800 underline-offset-4 hover:underline">
-              ← Marketing site
+              ← Home page
             </Link>
             <span className="mx-2 text-ink-300">·</span>
-            <span>Tool UI — not indexed</span>
+            <span className="text-ink-400">App · not indexed for search</span>
           </div>
         </div>
       </div>

@@ -88,6 +88,18 @@ function debateSnapshot(log: SseEvent[]) {
 
 const HIDDEN_ARTIFACTS = new Set(["pipeline_stats.json", "pipeline_manifest.json"]);
 
+function cloudSaveProviderLabel(p: "google_drive" | "dropbox" | "onedrive"): string {
+  if (p === "google_drive") return "Google Drive";
+  if (p === "dropbox") return "Dropbox";
+  return "OneDrive";
+}
+
+function cloudSavedOpenLinkLabel(p: "google_drive" | "dropbox" | "onedrive"): string {
+  if (p === "google_drive") return "Open in Google Drive";
+  if (p === "dropbox") return "Open in Dropbox";
+  return "Open in OneDrive";
+}
+
 export default function HomePage() {
   const [email, setEmail] = useState("");
   const [me, setMe] = useState<MeResponse | null>(null);
@@ -109,6 +121,11 @@ export default function HomePage() {
   const [log, setLog] = useState<SseEvent[]>([]);
   const [job, setJob] = useState<JobSummary | null>(null);
   const [formErr, setFormErr] = useState<string | null>(null);
+  const [cloudSaveNotice, setCloudSaveNotice] = useState<{
+    webUrl: string | null;
+    artifact: string;
+    provider: "google_drive" | "dropbox" | "onedrive";
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [gate, setGate] = useState<Gate>(null);
   const [drag, setDrag] = useState(false);
@@ -170,6 +187,7 @@ export default function HomePage() {
         return;
       }
       setFormErr(null);
+      setCloudSaveNotice(null);
       try {
         let token = "";
         if (provider === "google_drive") {
@@ -197,10 +215,15 @@ export default function HomePage() {
           setFormErr("Sign in to this cloud provider first.");
           return;
         }
-        await cloudExport({
+        const out = await cloudExport({
           job_id: jobId,
           request: { provider, artifact_name: artifactName },
           access_token: token,
+        });
+        setCloudSaveNotice({
+          webUrl: out.web_view_link,
+          artifact: artifactName,
+          provider,
         });
       } catch (e) {
         setFormErr(e instanceof Error ? e.message : "Save to cloud failed");
@@ -312,6 +335,7 @@ export default function HomePage() {
   async function run() {
     setFormErr(null);
     setLog([]);
+    setCloudSaveNotice(null);
     setJob(null);
     abortRef.current?.abort();
     abortRef.current = new AbortController();
@@ -409,6 +433,7 @@ export default function HomePage() {
     const reviewId = job.id;
     setFormErr(null);
     setLog([]);
+    setCloudSaveNotice(null);
     setBusy(true);
     abortRef.current?.abort();
     abortRef.current = new AbortController();
@@ -565,7 +590,7 @@ export default function HomePage() {
         },
         access_token: accessToken,
       });
-      setSupportingCloud((prev) => [...prev, { handle: res.import_handle, label: `${res.reference.filename} · Drive` }]);
+      setSupportingCloud((prev) => [...prev, { handle: res.import_handle, label: `${res.reference.filename} · Google Drive` }]);
     } catch (e) {
       if (e instanceof Error && e.message !== "cancelled") setFormErr(e.message);
     } finally {
@@ -650,8 +675,15 @@ export default function HomePage() {
     const vis = job.artifacts.filter((a) => !HIDDEN_ARTIFACTS.has(a.name));
     const tiers = pr?.artifact_tiers ?? {};
     const tierOf = (name: string, a: Art) => tiers[name] ?? a.tier ?? "primary";
+    const primaryRaw = vis.filter((a) => tierOf(a.name, a) !== "advanced");
+    const primary = [...primaryRaw].sort((a, b) => {
+      const apdf = a.name.toLowerCase().endsWith(".pdf") ? 0 : 1;
+      const bpdf = b.name.toLowerCase().endsWith(".pdf") ? 0 : 1;
+      if (apdf !== bpdf) return apdf - bpdf;
+      return a.name.localeCompare(b.name);
+    });
     return {
-      primary: vis.filter((a) => tierOf(a.name, a) !== "advanced"),
+      primary,
       advanced: vis.filter((a) => tierOf(a.name, a) === "advanced"),
     };
   }, [job, pr?.artifact_tiers]);
@@ -663,6 +695,14 @@ export default function HomePage() {
       if (p != null && p > best) best = p;
     }
     return best;
+  }, [log]);
+
+  const latestCycleNumber = useMemo(() => {
+    for (let i = log.length - 1; i >= 0; i--) {
+      const c = num(log[i]?.detail?.cycle_number);
+      if (c != null) return c;
+    }
+    return null;
   }, [log]);
 
   const hasReviewFixSeed = useMemo(
@@ -799,8 +839,8 @@ export default function HomePage() {
                   applyMainFile(f ?? null);
                 }}
                 onClick={() => !running && mainInputRef.current?.click()}
-                className={`flex min-h-[9.5rem] cursor-pointer flex-col justify-center rounded-2xl border px-5 py-6 transition ${
-                  drag ? "border-zinc-900 bg-white" : "border-zinc-200/90 bg-white/60 hover:border-zinc-300"
+                className={`flex min-h-[9.5rem] cursor-pointer flex-col justify-center rounded-2xl border px-5 py-6 shadow-sm ring-1 ring-zinc-900/[0.03] transition ${
+                  drag ? "border-zinc-900 bg-white ring-zinc-900/10" : "border-zinc-200/90 bg-white/70 hover:border-zinc-300 hover:ring-zinc-900/[0.06]"
                 } ${running ? "pointer-events-none opacity-50" : ""}`}
               >
                 <input
@@ -815,6 +855,11 @@ export default function HomePage() {
                   {mainCloud ? mainCloud.label : mainFile ? mainFile.name : "Drop manuscript or browse"}
                 </p>
                 <p className="mt-1 text-xs text-zinc-400">DOCX or PDF · up to {me.max_pages} pages</p>
+                {cloudCfg?.google_client_id && cloudCfg?.google_picker_api_key ? (
+                  <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
+                    Google Docs files may be exported to Word before review.
+                  </p>
+                ) : null}
                 {outputMode === "fix" &&
                 (mainFile?.name ?? mainCloud?.label ?? "").toLowerCase().endsWith(".pdf") ? (
                   <p className="mt-1 text-[11px] text-zinc-400">
@@ -829,18 +874,19 @@ export default function HomePage() {
                 cloudCfg.dropbox_app_key ||
                 cloudCfg.microsoft_client_id) ? (
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-500">
-                  <span className="text-zinc-400">Or from cloud</span>
+                  <span className="text-zinc-400">Or import from</span>
                   {cloudCfg.google_client_id && cloudCfg.google_picker_api_key ? (
                     <button
                       type="button"
                       disabled={running}
+                      aria-label="Choose main manuscript from Google Drive"
                       onClick={(e) => {
                         e.stopPropagation();
                         void importMainFromGoogle();
                       }}
                       className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800 disabled:opacity-40"
                     >
-                      Google Drive
+                      Choose from Google Drive
                     </button>
                   ) : null}
                   {cloudCfg.dropbox_app_key ? (
@@ -872,7 +918,7 @@ export default function HomePage() {
                 </div>
               ) : null}
 
-              <div>
+              <div className="rounded-2xl border border-zinc-200/85 bg-white/55 px-3 py-2 shadow-sm ring-1 ring-zinc-900/[0.02]">
                 <button
                   type="button"
                   disabled={running}
@@ -940,6 +986,9 @@ export default function HomePage() {
                         className="w-full text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-900 file:px-3 file:py-2 file:text-xs file:text-white"
                       />
                       <p className="text-[11px] text-zinc-400">Evidence only · Pro</p>
+                      <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
+                        PDF, Word, or plain text—or add supporting files from Google Drive.
+                      </p>
                       {supportingCloud.length > 0 ? (
                         <ul className="mt-2 space-y-1">
                           {supportingCloud.map((c) => (
@@ -963,15 +1012,16 @@ export default function HomePage() {
                         cloudCfg.dropbox_app_key ||
                         cloudCfg.microsoft_client_id) ? (
                         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-500">
-                          <span className="text-zinc-400">From cloud</span>
+                          <span className="text-zinc-400">Add from</span>
                           {cloudCfg.google_client_id && cloudCfg.google_picker_api_key ? (
                             <button
                               type="button"
                               disabled={running || !canSupport}
+                              aria-label="Add supporting files from Google Drive"
                               onClick={() => void importSupportingFromGoogle()}
                               className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800 disabled:opacity-40"
                             >
-                              Google Drive
+                              Choose from Google Drive
                             </button>
                           ) : null}
                           {cloudCfg.dropbox_app_key ? (
@@ -1051,10 +1101,10 @@ export default function HomePage() {
           )}
         </section>
 
-        <section className="mt-16 space-y-6">
+        <section className="mt-16 space-y-5 rounded-2xl border border-zinc-200/95 bg-white/80 p-5 shadow-sm ring-1 ring-zinc-900/[0.03] sm:p-6">
           <h2 className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-400">Status</h2>
           {showLongJobChrome ? (
-            <div className="space-y-2 rounded-2xl border border-zinc-200/90 bg-white/90 p-4">
+            <div className="space-y-2 rounded-xl border border-zinc-200/90 bg-zinc-50/40 p-4 shadow-sm ring-1 ring-zinc-900/[0.02]">
               <p className="text-[11px] leading-relaxed text-zinc-500">
                 DraftLens is still working. Please don&apos;t close or refresh this page. This step can take longer for
                 larger documents; you can review results when processing completes.
@@ -1066,17 +1116,38 @@ export default function HomePage() {
                     style={{ width: `${Math.min(100, Math.max(1, progressPct || 1))}%` }}
                   />
                 </div>
-                <div className="flex items-baseline justify-between gap-2 text-[11px] text-zinc-500">
-                  <span className="truncate text-zinc-700">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 text-[11px] text-zinc-500">
+                  <span className="min-w-0 flex-1 truncate text-zinc-700">
                     {liveStage
                       ? typeof liveStage.message === "string" && liveStage.message.trim()
                         ? liveStage.message.trim()
                         : stageLabel(liveStage.stage)
                       : "Starting…"}
                   </span>
-                  <span className="shrink-0 tabular-nums text-zinc-600">{Math.min(100, progressPct || 0)}%</span>
+                  <span className="flex shrink-0 items-center gap-2 tabular-nums text-zinc-600">
+                    <span>{Math.min(100, progressPct || 0)}%</span>
+                    {latestCycleNumber != null ? (
+                      <span className="font-normal text-zinc-500">Cycle {latestCycleNumber}</span>
+                    ) : null}
+                  </span>
                 </div>
               </div>
+            </div>
+          ) : null}
+          {!showLongJobChrome && log.length > 0 ? (
+            <div className="flex flex-wrap items-baseline justify-between gap-2 rounded-xl border border-zinc-200/85 bg-white/85 px-3 py-2.5 text-[11px] text-zinc-600 shadow-sm ring-1 ring-zinc-900/[0.02]">
+              <span className="shrink-0 text-zinc-400">Latest</span>
+              <span className="min-w-0 flex-1 truncate text-zinc-800">
+                {liveStage
+                  ? typeof liveStage.message === "string" && liveStage.message.trim()
+                    ? liveStage.message.trim()
+                    : stageLabel(liveStage.stage)
+                  : "—"}
+              </span>
+              <span className="shrink-0 tabular-nums text-zinc-600">{Math.min(100, progressPct || 0)}%</span>
+              {latestCycleNumber != null ? (
+                <span className="shrink-0 text-zinc-500">Cycle {latestCycleNumber}</span>
+              ) : null}
             </div>
           ) : null}
           {chips.length > 0 ? (
@@ -1096,20 +1167,45 @@ export default function HomePage() {
               Conflicts {debateProgress.before ?? "—"} → {debateProgress.after ?? "—"}
             </p>
           )}
-          <ol className="space-y-3 border-l border-zinc-200/90 pl-4">
-            {log.length === 0 ? <li className="text-xs text-zinc-400">Awaiting run.</li> : null}
-            {log.map((ev, i) => (
-              <li key={`${i}-${ev.stage}-${ev.ts ?? ""}`} className="relative text-xs text-zinc-600">
-                <span className="absolute -left-[17px] top-1.5 h-1.5 w-1.5 rounded-full bg-zinc-300" />
-                <span className="font-medium text-zinc-800">{stageLabel(ev.stage)}</span>
-                {ev.message ? <span className="text-zinc-500"> · {ev.message}</span> : null}
-              </li>
-            ))}
-          </ol>
+          {log.length > 0 ? (
+            <details className="rounded-xl border border-zinc-200/85 bg-white/70 text-xs text-zinc-600 shadow-sm ring-1 ring-zinc-900/[0.02]">
+              <summary className="cursor-pointer select-none px-3 py-2.5 font-medium text-zinc-700 marker:text-zinc-400">
+                View full process log ({log.length} {log.length === 1 ? "step" : "steps"})
+              </summary>
+              <ol className="max-h-52 space-y-2.5 overflow-y-auto border-t border-zinc-100 px-3 py-3 pl-6">
+                {log.map((ev, i) => (
+                  <li key={`${i}-${ev.stage}-${ev.ts ?? ""}`} className="relative text-xs leading-relaxed text-zinc-600">
+                    <span className="font-medium text-zinc-800">{stageLabel(ev.stage)}</span>
+                    {ev.message ? <span className="text-zinc-500"> · {ev.message}</span> : null}
+                  </li>
+                ))}
+              </ol>
+            </details>
+          ) : !showLongJobChrome ? (
+            <p className="text-xs text-zinc-400">Awaiting run.</p>
+          ) : null}
         </section>
 
-        <section className="mt-16 space-y-6">
+        <section className="mt-16 space-y-6 rounded-2xl border border-zinc-200/95 bg-white/80 p-5 shadow-sm ring-1 ring-zinc-900/[0.03] sm:p-6">
           <h2 className="text-xs font-medium uppercase tracking-[0.18em] text-zinc-400">Summary</h2>
+          {cloudSaveNotice ? (
+            <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/50 px-4 py-3 text-xs text-emerald-950 shadow-sm ring-1 ring-emerald-900/10">
+              <p className="font-medium">Saved to {cloudSaveProviderLabel(cloudSaveNotice.provider)}</p>
+              <p className="mt-0.5 text-emerald-900/90">{cloudSaveNotice.artifact}</p>
+              {cloudSaveNotice.webUrl ? (
+                <a
+                  href={cloudSaveNotice.webUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-block font-medium text-emerald-900 underline decoration-emerald-300 underline-offset-2 hover:decoration-emerald-700"
+                >
+                  {cloudSavedOpenLinkLabel(cloudSaveNotice.provider)}
+                </a>
+              ) : (
+                <p className="mt-2 text-emerald-800/90">Upload finished. Check your cloud folder if no link is shown.</p>
+              )}
+            </div>
+          ) : null}
           {job ? (
             <div className="space-y-4 text-sm text-zinc-600">
               <p>
@@ -1124,7 +1220,7 @@ export default function HomePage() {
                 <p className="text-[11px] leading-relaxed text-zinc-400">{job.retention_notice}</p>
               ) : null}
               {pr ? (
-                <div className="space-y-3 rounded-2xl bg-white/70 p-4 ring-1 ring-zinc-200/80">
+                <div className="space-y-3 rounded-2xl border border-zinc-200/90 bg-white/75 p-4 shadow-sm ring-1 ring-zinc-900/[0.03]">
                   <div className="flex flex-wrap gap-2 text-xs">
                     <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-700">Issues {pr.total_issues}</span>
                     {Object.entries(pr.stats_by_severity).map(([k, v]) => (
@@ -1246,7 +1342,7 @@ export default function HomePage() {
               job.output_mode === "review" &&
               hasReviewFixSeed &&
               !job.error_message ? (
-                <div className="rounded-2xl border border-zinc-200/80 bg-white/80 p-4">
+                <div className="rounded-2xl border border-zinc-200/85 bg-white/85 p-4 shadow-sm ring-1 ring-zinc-900/[0.03]">
                   {pr?.partial_consensus_only || pr?.full_three_reviewer_consensus_achieved === false ? (
                     <p className="mb-3 text-[11px] leading-relaxed text-zinc-500">
                       Review ended without full three‑reviewer agreement on every issue. You can still request a
@@ -1299,7 +1395,7 @@ export default function HomePage() {
                 {artifactSplit.primary.map((a) => (
                   <div
                     key={a.name}
-                    className="flex flex-col overflow-hidden rounded-2xl bg-white ring-1 ring-zinc-200/90 transition hover:ring-zinc-300"
+                    className="flex flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm ring-1 ring-zinc-900/[0.04] transition hover:ring-zinc-300"
                   >
                     <a
                       href={artifactDownloadUrl(job.id, a.name)}
@@ -1315,32 +1411,38 @@ export default function HomePage() {
                       cloudCfg.microsoft_client_id) &&
                     !a.name.endsWith(".json") ? (
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-zinc-100 px-4 py-2 text-[10px] text-zinc-500">
-                        <span className="text-zinc-400">Save</span>
+                        <span className="text-zinc-400">Save as new file</span>
                         {cloudCfg.google_client_id && cloudCfg.google_picker_api_key ? (
                           <button
                             type="button"
+                            title="Save corrected output to Google Drive"
+                            aria-label="Save corrected output to Google Drive"
                             className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800"
                             onClick={() => void runCloudExport(job.id, a.name, "google_drive")}
                           >
-                            Drive
+                            Save to Drive
                           </button>
                         ) : null}
                         {cloudCfg.dropbox_app_key ? (
                           <button
                             type="button"
+                            title="Save as a new file in Dropbox"
+                            aria-label="Save as a new file in Dropbox"
                             className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800"
                             onClick={() => void runCloudExport(job.id, a.name, "dropbox")}
                           >
-                            Dropbox
+                            Save to Dropbox
                           </button>
                         ) : null}
                         {cloudCfg.microsoft_client_id ? (
                           <button
                             type="button"
+                            title="Save as a new file in OneDrive"
+                            aria-label="Save as a new file in OneDrive"
                             className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800"
                             onClick={() => void runCloudExport(job.id, a.name, "onedrive")}
                           >
-                            OneDrive
+                            Save to OneDrive
                           </button>
                         ) : null}
                       </div>
@@ -1349,7 +1451,7 @@ export default function HomePage() {
                 ))}
               </div>
               {artifactSplit.advanced.length > 0 ? (
-                <details className="rounded-xl bg-white/60 px-3 py-2 text-xs text-zinc-600 ring-1 ring-zinc-200/70">
+                <details className="rounded-xl border border-zinc-200/85 bg-white/70 px-3 py-2 text-xs text-zinc-600 shadow-sm ring-1 ring-zinc-900/[0.02]">
                   <summary className="cursor-pointer select-none font-medium text-zinc-700">
                     Advanced artifacts
                   </summary>

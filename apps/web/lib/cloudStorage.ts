@@ -116,19 +116,24 @@ export async function pickFromGoogleDrive(args: {
           setCallback: (cb: (d: unknown) => void) => unknown;
           build: () => { setVisible: (v: boolean) => void };
         };
-        ViewId: { DOCS: unknown };
+        DocsView: new (viewId?: unknown) => { setMimeTypes: (m: string) => unknown; setIncludeFolders: (b: boolean) => unknown };
+        ViewId: { DOCS: unknown; DOCUMENTS: unknown };
         Action: { PICKED: string; CANCEL: string };
       };
     };
   };
   const google = win.google;
   if (!google?.picker) throw new Error("google_picker_missing");
-  const { PickerBuilder, ViewId, Action } = google.picker;
+  const { PickerBuilder, ViewId, Action, DocsView } = google.picker;
+  /** PDF, Word, and Google Docs in Drive — matches DraftLens manuscript + evidence formats. */
+  const driveMimeFilter =
+    "application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,application/vnd.google-apps.document,text/plain,text/markdown";
+  const docsView = new DocsView(ViewId.DOCUMENTS).setMimeTypes(driveMimeFilter).setIncludeFolders(false);
   type Chain = { addView: (v: unknown) => Chain; setOAuthToken: (t: string) => Chain; setDeveloperKey: (k: string) => Chain; setCallback: (cb: (d: unknown) => void) => Chain; build: () => { setVisible: (v: boolean) => void } };
   const Builder = PickerBuilder as new () => Chain;
   return new Promise((resolve, reject) => {
     const picker = new Builder()
-      .addView(ViewId.DOCS)
+      .addView(docsView)
       .setOAuthToken(token)
       .setDeveloperKey(args.pickerApiKey)
       .setCallback((data: unknown) => {
