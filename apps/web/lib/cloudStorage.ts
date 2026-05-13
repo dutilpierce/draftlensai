@@ -125,10 +125,13 @@ export async function pickFromGoogleDrive(args: {
   const google = win.google;
   if (!google?.picker) throw new Error("google_picker_missing");
   const { PickerBuilder, ViewId, Action, DocsView } = google.picker;
+  const DocsViewClass = DocsView as unknown as new (viewId?: unknown) => {
+    setMimeTypes: (m: string) => { setIncludeFolders: (b: boolean) => unknown };
+  };
   /** PDF, Word, and Google Docs in Drive — matches DraftLens manuscript + evidence formats. */
   const driveMimeFilter =
     "application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,application/vnd.google-apps.document,text/plain,text/markdown";
-  const docsView = new DocsView(ViewId.DOCUMENTS).setMimeTypes(driveMimeFilter).setIncludeFolders(false);
+  const docsView = new DocsViewClass(ViewId.DOCUMENTS).setMimeTypes(driveMimeFilter).setIncludeFolders(false) as unknown;
   type Chain = { addView: (v: unknown) => Chain; setOAuthToken: (t: string) => Chain; setDeveloperKey: (k: string) => Chain; setCallback: (cb: (d: unknown) => void) => Chain; build: () => { setVisible: (v: boolean) => void } };
   const Builder = PickerBuilder as new () => Chain;
   return new Promise((resolve, reject) => {
