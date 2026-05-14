@@ -110,6 +110,7 @@ export default function HomePage() {
   const [supporting, setSupporting] = useState<File[]>([]);
   const [supportingCloud, setSupportingCloud] = useState<{ handle: string; label: string }[]>([]);
   const [cloudCfg, setCloudCfg] = useState<CloudPublicConfig | null>(null);
+  const [cloudCfgFetched, setCloudCfgFetched] = useState(false);
   const [optOpen, setOptOpen] = useState(false);
   const [context, setContext] = useState("");
   const [reviewFocus, setReviewFocus] = useState("standard");
@@ -132,6 +133,7 @@ export default function HomePage() {
 
   const abortRef = useRef<AbortController | null>(null);
   const mainInputRef = useRef<HTMLInputElement>(null);
+  const supportingInputRef = useRef<HTMLInputElement>(null);
 
   const refreshMe = useCallback(async () => {
     setMeErr(null);
@@ -174,9 +176,19 @@ export default function HomePage() {
   useEffect(() => {
     if (!me) {
       setCloudCfg(null);
+      setCloudCfgFetched(false);
       return;
     }
-    void fetchCloudPublicConfig().then(setCloudCfg).catch(() => setCloudCfg(null));
+    setCloudCfgFetched(false);
+    void fetchCloudPublicConfig()
+      .then((cfg) => {
+        setCloudCfg(cfg);
+        setCloudCfgFetched(true);
+      })
+      .catch(() => {
+        setCloudCfg(null);
+        setCloudCfgFetched(true);
+      });
   }, [me]);
 
   const runCloudExport = useCallback(
@@ -292,6 +304,11 @@ export default function HomePage() {
   const canFix = me?.fix_mode_allowed === true;
   const canSupport = me?.supporting_files_allowed === true;
   const running = busy;
+
+  const googleDriveConfigured = useMemo(
+    () => Boolean(cloudCfg?.google_client_id && cloudCfg?.google_picker_api_key),
+    [cloudCfg],
+  );
 
   const debateProgress = useMemo(() => debateSnapshot(log), [log]);
   const chips = useMemo(() => aggregateReviewerChips(log), [log]);
@@ -816,107 +833,235 @@ export default function HomePage() {
                 </span>
               </div>
 
-              <div
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") mainInputRef.current?.click();
-                }}
-                onDragEnter={(e) => {
-                  e.preventDefault();
-                  if (!running) setDrag(true);
-                }}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  if (!running) setDrag(true);
-                }}
-                onDragLeave={() => setDrag(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDrag(false);
-                  if (running) return;
-                  const f = e.dataTransfer.files?.[0];
-                  applyMainFile(f ?? null);
-                }}
-                onClick={() => !running && mainInputRef.current?.click()}
-                className={`flex min-h-[9.5rem] cursor-pointer flex-col justify-center rounded-2xl border px-5 py-6 shadow-sm ring-1 ring-zinc-900/[0.03] transition ${
-                  drag ? "border-zinc-900 bg-white ring-zinc-900/10" : "border-zinc-200/90 bg-white/70 hover:border-zinc-300 hover:ring-zinc-900/[0.06]"
-                } ${running ? "pointer-events-none opacity-50" : ""}`}
-              >
-                <input
-                  ref={mainInputRef}
-                  type="file"
-                  accept=".docx,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
-                  className="hidden"
-                  disabled={running}
-                  onChange={(e) => applyMainFile(e.target.files?.[0] ?? null)}
-                />
-                <p className="text-sm text-zinc-800">
-                  {mainCloud ? mainCloud.label : mainFile ? mainFile.name : "Drop manuscript or browse"}
-                </p>
-                <p className="mt-1 text-xs text-zinc-400">DOCX or PDF · up to {me.max_pages} pages</p>
-                {cloudCfg?.google_client_id && cloudCfg?.google_picker_api_key ? (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs font-medium tracking-wide text-zinc-700">Upload a PDF or Word document</p>
                   <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
-                    Google Docs files may be exported to Word before review.
+                    Upload or import from your device or Google Drive.
+                  </p>
+                </div>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") mainInputRef.current?.click();
+                  }}
+                  onDragEnter={(e) => {
+                    e.preventDefault();
+                    if (!running) setDrag(true);
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    if (!running) setDrag(true);
+                  }}
+                  onDragLeave={() => setDrag(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDrag(false);
+                    if (running) return;
+                    const f = e.dataTransfer.files?.[0];
+                    applyMainFile(f ?? null);
+                  }}
+                  onClick={() => !running && mainInputRef.current?.click()}
+                  className={`flex min-h-[9.5rem] cursor-pointer flex-col justify-center rounded-2xl border px-5 py-6 shadow-sm ring-1 ring-zinc-900/[0.03] transition ${
+                    drag ? "border-zinc-900 bg-white ring-zinc-900/10" : "border-zinc-200/90 bg-white/70 hover:border-zinc-300 hover:ring-zinc-900/[0.06]"
+                  } ${running ? "pointer-events-none opacity-50" : ""}`}
+                >
+                  <input
+                    ref={mainInputRef}
+                    type="file"
+                    accept=".docx,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf"
+                    className="hidden"
+                    disabled={running}
+                    onChange={(e) => applyMainFile(e.target.files?.[0] ?? null)}
+                  />
+                  <p className="text-sm text-zinc-800">
+                    {mainCloud ? mainCloud.label : mainFile ? mainFile.name : "Drop manuscript or tap “Upload from device”"}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-400">DOCX or PDF · up to {me.max_pages} pages</p>
+                  {outputMode === "fix" &&
+                  (mainFile?.name ?? mainCloud?.label ?? "").toLowerCase().endsWith(".pdf") ? (
+                    <p className="mt-1 text-[11px] text-zinc-400">
+                      Fix mode outputs a new Word file from extracted text — not an edited PDF.
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <button
+                    type="button"
+                    disabled={running}
+                    onClick={() => mainInputRef.current?.click()}
+                    className="rounded-xl border border-zinc-900 bg-zinc-900 px-4 py-2.5 text-center text-sm font-medium text-white shadow-sm transition hover:bg-zinc-800 disabled:opacity-40"
+                  >
+                    Upload from device
+                  </button>
+                  <button
+                    type="button"
+                    disabled={running || !cloudCfgFetched || !googleDriveConfigured}
+                    aria-label="Choose main manuscript from Google Drive"
+                    onClick={() => void importMainFromGoogle()}
+                    className={`rounded-xl border px-4 py-2.5 text-center text-sm font-medium shadow-sm transition disabled:cursor-not-allowed ${
+                      running || !cloudCfgFetched || !googleDriveConfigured
+                        ? "border-zinc-200/90 bg-zinc-50 text-zinc-400"
+                        : "border-zinc-300 bg-white text-zinc-900 hover:border-zinc-400 hover:bg-zinc-50"
+                    }`}
+                  >
+                    Choose from Google Drive
+                  </button>
+                </div>
+                {!cloudCfgFetched ? <p className="text-[11px] text-zinc-400">Checking cloud options…</p> : null}
+                {cloudCfgFetched && !googleDriveConfigured ? (
+                  <p className="text-[11px] text-zinc-500">
+                    Google Drive is not configured on the API yet.
+                    {process.env.NODE_ENV === "development" ? (
+                      <span className="mt-1 block font-mono text-[10px] leading-snug text-amber-900/90">
+                        Dev: DRAFTLENS_GOOGLE_CLIENT_ID + DRAFTLENS_GOOGLE_PICKER_API_KEY on API · GET /api/cloud/config
+                      </span>
+                    ) : null}
                   </p>
                 ) : null}
-                {outputMode === "fix" &&
-                (mainFile?.name ?? mainCloud?.label ?? "").toLowerCase().endsWith(".pdf") ? (
-                  <p className="mt-1 text-[11px] text-zinc-400">
-                    Fix mode outputs a new Word file from extracted text — not an edited PDF.
-                  </p>
+                {googleDriveConfigured ? (
+                  <p className="text-[11px] text-zinc-400">Google Docs files may be exported to Word before review.</p>
+                ) : null}
+                {cloudCfgFetched && (cloudCfg?.dropbox_app_key || cloudCfg?.microsoft_client_id) ? (
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-zinc-100 pt-3 text-[11px] text-zinc-500">
+                    <span className="text-zinc-400">Other cloud</span>
+                    {cloudCfg?.dropbox_app_key ? (
+                      <button
+                        type="button"
+                        disabled={running}
+                        onClick={() => void importMainFromDropbox()}
+                        className="font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-2 hover:text-zinc-900 disabled:opacity-40"
+                      >
+                        Dropbox
+                      </button>
+                    ) : null}
+                    {cloudCfg?.microsoft_client_id ? (
+                      <button
+                        type="button"
+                        disabled={running}
+                        onClick={() => void importMainFromOneDrive()}
+                        className="font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-2 hover:text-zinc-900 disabled:opacity-40"
+                      >
+                        OneDrive
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
 
-              {cloudCfg &&
-              (cloudCfg.google_client_id ||
-                cloudCfg.google_picker_api_key ||
-                cloudCfg.dropbox_app_key ||
-                cloudCfg.microsoft_client_id) ? (
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-500">
-                  <span className="text-zinc-400">Or import from</span>
-                  {cloudCfg.google_client_id && cloudCfg.google_picker_api_key ? (
-                    <button
-                      type="button"
-                      disabled={running}
-                      aria-label="Choose main manuscript from Google Drive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void importMainFromGoogle();
-                      }}
-                      className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800 disabled:opacity-40"
-                    >
-                      Choose from Google Drive
-                    </button>
-                  ) : null}
-                  {cloudCfg.dropbox_app_key ? (
-                    <button
-                      type="button"
-                      disabled={running}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void importMainFromDropbox();
-                      }}
-                      className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800 disabled:opacity-40"
-                    >
-                      Dropbox
-                    </button>
-                  ) : null}
-                  {cloudCfg.microsoft_client_id ? (
-                    <button
-                      type="button"
-                      disabled={running}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void importMainFromOneDrive();
-                      }}
-                      className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800 disabled:opacity-40"
-                    >
-                      OneDrive
-                    </button>
+              <div className="space-y-3 rounded-2xl border border-zinc-200/85 bg-white/70 p-4 shadow-sm ring-1 ring-zinc-900/[0.03]">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-[0.14em] text-zinc-500">Add supporting files</p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
+                    Use source documents, exhibits, prior drafts, or context files. Add supporting PDFs or Word documents
+                    from your device or Google Drive.
+                  </p>
+                  <p className="mt-1 text-[11px] font-medium text-zinc-500">Evidence only · Pro</p>
+                  {!canSupport ? (
+                    <p className="mt-1 text-[11px] text-zinc-500">Upgrade to Pro to attach supporting files from your device or Google Drive.</p>
                   ) : null}
                 </div>
-              ) : null}
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <button
+                    type="button"
+                    disabled={running || !canSupport}
+                    onClick={() => supportingInputRef.current?.click()}
+                    className="rounded-xl border border-zinc-900 bg-zinc-900 px-4 py-2.5 text-center text-sm font-medium text-white shadow-sm transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Browse device
+                  </button>
+                  <button
+                    type="button"
+                    disabled={running || !canSupport || !cloudCfgFetched || !googleDriveConfigured}
+                    aria-label="Add supporting files from Google Drive"
+                    onClick={() => void importSupportingFromGoogle()}
+                    className={`rounded-xl border px-4 py-2.5 text-center text-sm font-medium shadow-sm transition disabled:cursor-not-allowed ${
+                      running || !canSupport || !cloudCfgFetched || !googleDriveConfigured
+                        ? "border-zinc-200/90 bg-zinc-50 text-zinc-400"
+                        : "border-zinc-300 bg-white text-zinc-900 hover:border-zinc-400 hover:bg-zinc-50"
+                    }`}
+                  >
+                    Add from Google Drive
+                  </button>
+                </div>
+                <input
+                  ref={supportingInputRef}
+                  type="file"
+                  multiple
+                  accept=".docx,.pdf,.txt,.md,.doc"
+                  className="hidden"
+                  disabled={running || !canSupport}
+                  onChange={(e) => {
+                    const files = e.target.files ? Array.from(e.target.files) : [];
+                    if (!canSupport && files.length) {
+                      e.target.value = "";
+                      setGate("supporting");
+                      return;
+                    }
+                    setSupporting(files);
+                  }}
+                />
+                {!cloudCfgFetched ? <p className="text-[11px] text-zinc-400">Checking cloud options…</p> : null}
+                {cloudCfgFetched && !googleDriveConfigured ? (
+                  <p className="text-[11px] text-zinc-500">
+                    Google Drive is not configured on the API yet.
+                    {process.env.NODE_ENV === "development" ? (
+                      <span className="mt-1 block font-mono text-[10px] leading-snug text-amber-900/90">
+                        Dev: DRAFTLENS_GOOGLE_CLIENT_ID + DRAFTLENS_GOOGLE_PICKER_API_KEY on API
+                      </span>
+                    ) : null}
+                  </p>
+                ) : null}
+                {supporting.length > 0 || supportingCloud.length > 0 ? (
+                  <ul className="space-y-1.5 rounded-xl border border-zinc-100 bg-white/80 px-3 py-2 text-[11px] text-zinc-600">
+                    {supporting.map((f, i) => (
+                      <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-2">
+                        <span className="truncate">{f.name}</span>
+                        <span className="shrink-0 text-zinc-400">Device</span>
+                      </li>
+                    ))}
+                    {supportingCloud.map((c) => (
+                      <li key={c.handle} className="flex items-center justify-between gap-2">
+                        <span className="truncate pr-2">{c.label}</span>
+                        <button
+                          type="button"
+                          disabled={running}
+                          className="shrink-0 text-zinc-500 underline disabled:opacity-40"
+                          onClick={() => setSupportingCloud((prev) => prev.filter((x) => x.handle !== c.handle))}
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {cloudCfgFetched && (cloudCfg?.dropbox_app_key || cloudCfg?.microsoft_client_id) ? (
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-zinc-100 pt-2 text-[11px] text-zinc-500">
+                    <span className="text-zinc-400">Other cloud</span>
+                    {cloudCfg?.dropbox_app_key ? (
+                      <button
+                        type="button"
+                        disabled={running || !canSupport}
+                        onClick={() => void importSupportingFromDropbox()}
+                        className="font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-2 hover:text-zinc-900 disabled:opacity-40"
+                      >
+                        Dropbox
+                      </button>
+                    ) : null}
+                    {cloudCfg?.microsoft_client_id ? (
+                      <button
+                        type="button"
+                        disabled={running || !canSupport}
+                        onClick={() => void importSupportingFromOneDrive()}
+                        className="font-medium text-zinc-700 underline decoration-zinc-300 underline-offset-2 hover:text-zinc-900 disabled:opacity-40"
+                      >
+                        OneDrive
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
 
               <div className="rounded-2xl border border-zinc-200/85 bg-white/55 px-3 py-2 shadow-sm ring-1 ring-zinc-900/[0.02]">
                 <button
@@ -966,86 +1111,6 @@ export default function HomePage() {
                         placeholder="Names, clauses, numbers, or wording to preserve."
                         className="w-full resize-none rounded-xl border border-zinc-200/90 bg-white px-3 py-2 text-sm outline-none disabled:opacity-40"
                       />
-                    </label>
-                    <label className={`block space-y-1.5 ${!canSupport ? "opacity-50" : ""}`}>
-                      <span className="text-xs text-zinc-500">Supporting files</span>
-                      <input
-                        type="file"
-                        multiple
-                        accept=".docx,.pdf,.txt,.md,.doc"
-                        disabled={running || !canSupport}
-                        onChange={(e) => {
-                          const files = e.target.files ? Array.from(e.target.files) : [];
-                          if (!canSupport && files.length) {
-                            e.target.value = "";
-                            setGate("supporting");
-                            return;
-                          }
-                          setSupporting(files);
-                        }}
-                        className="w-full text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-zinc-900 file:px-3 file:py-2 file:text-xs file:text-white"
-                      />
-                      <p className="text-[11px] text-zinc-400">Evidence only · Pro</p>
-                      <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
-                        PDF, Word, or plain text—or add supporting files from Google Drive.
-                      </p>
-                      {supportingCloud.length > 0 ? (
-                        <ul className="mt-2 space-y-1">
-                          {supportingCloud.map((c) => (
-                            <li key={c.handle} className="flex items-center justify-between text-[11px] text-zinc-600">
-                              <span className="truncate pr-2">{c.label}</span>
-                              <button
-                                type="button"
-                                disabled={running}
-                                className="shrink-0 text-zinc-400 underline disabled:opacity-40"
-                                onClick={() => setSupportingCloud((prev) => prev.filter((x) => x.handle !== c.handle))}
-                              >
-                                Remove
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                      {cloudCfg &&
-                      (cloudCfg.google_client_id ||
-                        cloudCfg.google_picker_api_key ||
-                        cloudCfg.dropbox_app_key ||
-                        cloudCfg.microsoft_client_id) ? (
-                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-zinc-500">
-                          <span className="text-zinc-400">Add from</span>
-                          {cloudCfg.google_client_id && cloudCfg.google_picker_api_key ? (
-                            <button
-                              type="button"
-                              disabled={running || !canSupport}
-                              aria-label="Add supporting files from Google Drive"
-                              onClick={() => void importSupportingFromGoogle()}
-                              className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800 disabled:opacity-40"
-                            >
-                              Choose from Google Drive
-                            </button>
-                          ) : null}
-                          {cloudCfg.dropbox_app_key ? (
-                            <button
-                              type="button"
-                              disabled={running || !canSupport}
-                              onClick={() => void importSupportingFromDropbox()}
-                              className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800 disabled:opacity-40"
-                            >
-                              Dropbox
-                            </button>
-                          ) : null}
-                          {cloudCfg.microsoft_client_id ? (
-                            <button
-                              type="button"
-                              disabled={running || !canSupport}
-                              onClick={() => void importSupportingFromOneDrive()}
-                              className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800 disabled:opacity-40"
-                            >
-                              OneDrive
-                            </button>
-                          ) : null}
-                        </div>
-                      ) : null}
                     </label>
                     <label className="flex items-center gap-2 text-sm text-zinc-700">
                       <input
