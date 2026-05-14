@@ -94,11 +94,29 @@ export async function getGoogleAccessToken(clientId: string): Promise<string> {
   });
 }
 
-export type GoogleDrivePick = { id: string; name: string; mimeType?: string };
+export type GoogleDrivePick = {
+  id: string;
+  name: string;
+  mimeType?: string;
+  /** From Picker when Google exposes it (often absent). */
+  iconUrl?: string;
+  thumbnailUrl?: string;
+  webViewLink?: string;
+};
+
+function readDocField(doc: Record<string, unknown>, ...keys: string[]): string | undefined {
+  for (const k of keys) {
+    const v = doc[k];
+    if (typeof v === "string" && v.trim()) return v;
+  }
+  return undefined;
+}
 
 export async function pickFromGoogleDrive(args: {
   clientId: string;
   pickerApiKey: string;
+  /** Numeric GCP project number for Picker `setAppId` (matches OAuth client project). */
+  cloudProjectNumber?: string | null;
 }): Promise<{ pick: GoogleDrivePick; accessToken: string }> {
   await loadScript("https://apis.google.com/js/api.js", "gapi");
   const gapiWin = window as unknown as { gapi?: { load: (m: string, cb: () => void) => void } };
@@ -113,6 +131,7 @@ export async function pickFromGoogleDrive(args: {
           addView: (v: unknown) => unknown;
           setOAuthToken: (t: string) => unknown;
           setDeveloperKey: (k: string) => unknown;
+          setAppId?: (appId: string) => unknown;
           setCallback: (cb: (d: unknown) => void) => unknown;
           build: () => { setVisible: (v: boolean) => void };
         };
@@ -128,23 +147,49 @@ export async function pickFromGoogleDrive(args: {
   const DocsViewClass = DocsView as unknown as new (viewId?: unknown) => {
     setMimeTypes: (m: string) => { setIncludeFolders: (b: boolean) => unknown };
   };
-  /** PDF, Word, and Google Docs in Drive — matches DraftLens manuscript + evidence formats. */
+  /** PDF, Word, Google Docs, plain text — manuscript + common supporting types. */
   const driveMimeFilter =
     "application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,application/vnd.google-apps.document,text/plain,text/markdown";
   const docsView = new DocsViewClass(ViewId.DOCUMENTS).setMimeTypes(driveMimeFilter).setIncludeFolders(false) as unknown;
-  type Chain = { addView: (v: unknown) => Chain; setOAuthToken: (t: string) => Chain; setDeveloperKey: (k: string) => Chain; setCallback: (cb: (d: unknown) => void) => Chain; build: () => { setVisible: (v: boolean) => void } };
+  type Chain = {
+    addView: (v: unknown) => Chain;
+    setOAuthToken: (t: string) => Chain;
+    setDeveloperKey: (k: string) => Chain;
+    setAppId?: (id: string) => Chain;
+    setCallback: (cb: (d: unknown) => void) => Chain;
+    build: () => { setVisible: (v: boolean) => void };
+  };
   const Builder = PickerBuilder as new () => Chain;
   return new Promise((resolve, reject) => {
-    const picker = new Builder()
-      .addView(docsView)
-      .setOAuthToken(token)
-      .setDeveloperKey(args.pickerApiKey)
+    let chain: Chain = new Builder().addView(docsView).setOAuthToken(token).setDeveloperKey(args.pickerApiKey);
+    const appId = (args.cloudProjectNumber ?? "").trim();
+    if (appId && typeof chain.setAppId === "function") {
+      chain = chain.setAppId(appId);
+    }
+    const picker = chain
       .setCallback((data: unknown) => {
-        const d = data as { action: string; docs?: { id?: string; name?: string; mimeType?: string }[] };
+        const d = data as { action: string; docs?: Record<string, unknown>[] };
         if (d.action === Action.PICKED) {
-          const doc = d.docs?.[0];
-          if (doc?.id) resolve({ pick: { id: doc.id, name: doc.name ?? "document", mimeType: doc.mimeType }, accessToken: token });
-          else reject(new Error("picker_empty"));
+          const raw = d.docs?.[0];
+          if (!raw || typeof raw !== "object") {
+            reject(new Error("picker_empty"));
+            return;
+          }
+          const doc = raw as Record<string, unknown>;
+          const id = typeof doc.id === "string" ? doc.id : undefined;
+          if (!id) {
+            reject(new Error("picker_empty"));
+            return;
+          }
+          const name = typeof doc.name === "string" && doc.name.trim() ? doc.name : "document";
+          const mimeType = readDocField(doc, "mimeType", "type");
+          const iconUrl = readDocField(doc, "iconUrl", "iconLink");
+          const thumbnailUrl = readDocField(doc, "thumbnailUrl", "thumbnailLink");
+          const webViewLink = readDocField(doc, "url", "embedUrl", "webViewLink");
+          resolve({
+            pick: { id, name, mimeType, iconUrl, thumbnailUrl, webViewLink },
+            accessToken: token,
+          });
         } else if (d.action === Action.CANCEL) reject(new Error("cancelled"));
       })
       .build();

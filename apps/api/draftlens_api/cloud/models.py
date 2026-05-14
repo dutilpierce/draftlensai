@@ -88,3 +88,21 @@ class MicrosoftPkceTokenRequest(BaseModel):
     code: str = Field(min_length=4)
     redirect_uri: str = Field(min_length=8, max_length=2048)
     code_verifier: str = Field(min_length=43, max_length=128)
+
+
+class GoogleDriveFileMetadataBody(BaseModel):
+    """User access token + Drive file id — used only for lightweight metadata (thumbnails, links)."""
+
+    file_id: str = Field(min_length=1, max_length=512)
+    access_token: str = Field(min_length=10, max_length=16000)
+
+
+class GoogleDriveFileMetadataResult(BaseModel):
+    id: str
+    name: str
+    mime_type: str = ""
+    icon_link: str | None = None
+    thumbnail_link: str | None = None
+    web_view_link: str | None = None
+    size: str | None = None
+    modified_time: str | None = None

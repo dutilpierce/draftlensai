@@ -176,6 +176,11 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("DRAFTLENS_GOOGLE_PICKER_API_KEY", "GOOGLE_PICKER_API_KEY"),
     )
+    # Numeric GCP project number for Google Picker setAppId (public; improves Picker integration when set).
+    draftlens_cloud_google_project_number: str = Field(
+        default="",
+        validation_alias=AliasChoices("DRAFTLENS_GOOGLE_PROJECT_NUMBER", "GOOGLE_CLOUD_PROJECT_NUMBER"),
+    )
     draftlens_cloud_dropbox_app_key: str = Field(default="", validation_alias=AliasChoices("DRAFTLENS_DROPBOX_APP_KEY"))
     draftlens_cloud_dropbox_app_secret: str = Field(
         default="", validation_alias=AliasChoices("DRAFTLENS_DROPBOX_APP_SECRET")

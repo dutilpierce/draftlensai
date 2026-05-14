@@ -30,6 +30,7 @@ def test_cloud_config_is_public(api_env: tuple[TestClient, object]) -> None:
     body = r.json()
     assert "google_client_id" in body
     assert "google_picker_api_key" in body
+    assert "google_cloud_project_number" in body
     assert "dropbox_app_key" in body
     assert "microsoft_client_id" in body
 
@@ -165,7 +166,38 @@ def test_create_job_with_cloud_main_handle(api_env: tuple[TestClient, object], m
     assert r.status_code == 200, r.text
 
 
-def test_create_job_ambiguous_main(api_env: tuple[TestClient, object]) -> None:
+def test_google_drive_metadata_requires_session(api_env: tuple[TestClient, object]) -> None:
+    client, _ = api_env
+    r = client.post("/api/cloud/google-drive/metadata", json={"file_id": "abc", "access_token": "x" * 20})
+    assert r.status_code == 401
+
+
+def test_google_drive_metadata_success(api_env: tuple[TestClient, object]) -> None:
+    client, _ = api_env
+    _cookies_from_start(client, "drive-meta@example.com")
+
+    fake = AsyncMock(
+        return_value={
+            "id": "fid1",
+            "name": "paper.pdf",
+            "mime_type": "application/pdf",
+            "icon_link": "https://example.com/icon.png",
+            "thumbnail_link": "https://example.com/thumb",
+            "web_view_link": "https://example.com/view",
+            "size": "99",
+            "modified_time": "2024-01-02T00:00:00Z",
+        }
+    )
+
+    with patch("draftlens_api.routes.cloud_storage.fetch_google_drive_file_metadata", fake):
+        r = client.post(
+            "/api/cloud/google-drive/metadata",
+            json={"file_id": "fid1", "access_token": "tok" + "x" * 20},
+        )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["name"] == "paper.pdf"
+    assert body["thumbnail_link"] == "https://example.com/thumb"
     client, _ = api_env
     _cookies_from_start(client, "amb@example.com")
     docx = minimal_docx_bytes()

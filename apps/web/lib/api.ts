@@ -215,6 +215,8 @@ export async function billingPortal(urls?: { return_url?: string }): Promise<{ u
 export type CloudPublicConfig = {
   google_client_id: string | null;
   google_picker_api_key: string | null;
+  /** Numeric GCP project number for Google Picker `setAppId` (optional; public). */
+  google_cloud_project_number?: string | null;
   dropbox_app_key: string | null;
   microsoft_client_id: string | null;
   api_public_url: string;
@@ -243,6 +245,27 @@ export type CloudImportResult = {
   import_handle: string;
   reference: CloudFileReference;
 };
+
+export type GoogleDriveFileMetadataResult = {
+  id: string;
+  name: string;
+  mime_type: string;
+  icon_link: string | null;
+  thumbnail_link: string | null;
+  web_view_link: string | null;
+  size: string | null;
+  modified_time: string | null;
+};
+
+export async function cloudGoogleDriveFileMetadata(body: {
+  file_id: string;
+  access_token: string;
+}): Promise<GoogleDriveFileMetadataResult> {
+  return apiJson<GoogleDriveFileMetadataResult>("/api/cloud/google-drive/metadata", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
 
 export async function cloudImport(body: {
   request: {

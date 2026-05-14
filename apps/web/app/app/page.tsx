@@ -7,6 +7,7 @@ import {
   billingPortal,
   cloudExport,
   cloudImport,
+  cloudGoogleDriveFileMetadata,
   createJob,
   applyFixesFromReview,
   exchangeDropboxToken,
@@ -17,7 +18,9 @@ import {
   fetchMe,
   startAccess,
   type CloudPublicConfig,
+  type CloudImportResult,
   type DisclaimerBundle,
+  type GoogleDriveFileMetadataResult,
   type JobSummary,
   type MeResponse,
 } from "@/lib/api";
@@ -29,11 +32,17 @@ import {
   pickFromOneDrive,
   startDropboxPkceOAuth,
   startMicrosoftPkceOAuth,
+  type GoogleDrivePick,
 } from "@/lib/cloudStorage";
 import { stageLabel } from "@/lib/pipelineStages";
 import { aggregateReviewerChips } from "@/lib/reviewerChips";
 import { streamJobEvents, type SseEvent } from "@/lib/sse";
 import { DraftLensLogo } from "@/components/brand/DraftLensLogo";
+import {
+  MainCloudAttachmentCard,
+  SupportingCloudAttachmentCard,
+  type CloudAttachment,
+} from "@/components/app/CloudAttachmentPreview";
 
 const REVIEW_FOCUS = [
   { value: "standard", label: "Standard" },
@@ -88,6 +97,46 @@ function debateSnapshot(log: SseEvent[]) {
 
 const HIDDEN_ARTIFACTS = new Set(["pipeline_stats.json", "pipeline_manifest.json"]);
 
+function cloudAttachmentLabel(filename: string, provider: CloudAttachment["provider"]): string {
+  const suffix =
+    provider === "google_drive" ? "Google Drive" : provider === "dropbox" ? "Dropbox" : "OneDrive";
+  return `${filename} · ${suffix}`;
+}
+
+function buildGoogleDriveAttachment(
+  pick: GoogleDrivePick,
+  res: CloudImportResult,
+  meta: GoogleDriveFileMetadataResult | null,
+  metadataRequested: boolean,
+  role: "main" | "supporting",
+): CloudAttachment {
+  const filename = res.reference.filename;
+  const thumbnailUrl = (pick.thumbnailUrl || "").trim() || meta?.thumbnail_link || null;
+  const iconUrl = (pick.iconUrl || "").trim() || meta?.icon_link || null;
+  const webViewLink = (pick.webViewLink || "").trim() || meta?.web_view_link || null;
+  const mimeType = res.reference.mime_type || pick.mimeType || meta?.mime_type || null;
+  if (process.env.NODE_ENV === "development") {
+    console.debug("[DraftLens Drive]", {
+      role,
+      pickerReturnedThumbnailUrl: Boolean((pick.thumbnailUrl || "").trim()),
+      backendMetadataRequested: metadataRequested,
+      backendReturnedThumbnailLink: metadataRequested ? Boolean(meta?.thumbnail_link) : null,
+      previewUsesThumbnail: Boolean(thumbnailUrl),
+      previewUsesFallback: !thumbnailUrl,
+    });
+  }
+  return {
+    handle: res.import_handle,
+    label: cloudAttachmentLabel(filename, "google_drive"),
+    provider: "google_drive",
+    filename,
+    mimeType,
+    thumbnailUrl,
+    iconUrl,
+    webViewLink,
+  };
+}
+
 function cloudSaveProviderLabel(p: "google_drive" | "dropbox" | "onedrive"): string {
   if (p === "google_drive") return "Google Drive";
   if (p === "dropbox") return "Dropbox";
@@ -106,9 +155,9 @@ export default function HomePage() {
   const [meErr, setMeErr] = useState<string | null>(null);
 
   const [mainFile, setMainFile] = useState<File | null>(null);
-  const [mainCloud, setMainCloud] = useState<{ handle: string; label: string } | null>(null);
+  const [mainCloud, setMainCloud] = useState<CloudAttachment | null>(null);
   const [supporting, setSupporting] = useState<File[]>([]);
-  const [supportingCloud, setSupportingCloud] = useState<{ handle: string; label: string }[]>([]);
+  const [supportingCloud, setSupportingCloud] = useState<CloudAttachment[]>([]);
   const [cloudCfg, setCloudCfg] = useState<CloudPublicConfig | null>(null);
   const [cloudCfgFetched, setCloudCfgFetched] = useState(false);
   const [optOpen, setOptOpen] = useState(false);
@@ -498,19 +547,24 @@ export default function HomePage() {
       const { pick, accessToken } = await pickFromGoogleDrive({
         clientId: cloudCfg.google_client_id,
         pickerApiKey: cloudCfg.google_picker_api_key,
+        cloudProjectNumber: cloudCfg.google_cloud_project_number ?? undefined,
       });
-      const res = await cloudImport({
-        request: {
-          provider: "google_drive",
-          provider_file_id: pick.id,
-          filename: pick.name,
-          mime_type: pick.mimeType ?? null,
-          document_role: "main",
-        },
-        access_token: accessToken,
-      });
+      const needsMeta = !(pick.thumbnailUrl || "").trim();
+      const importRequest = {
+        provider: "google_drive" as const,
+        provider_file_id: pick.id,
+        filename: pick.name,
+        mime_type: pick.mimeType ?? null,
+        document_role: "main" as const,
+      };
+      const [res, meta] = await Promise.all([
+        cloudImport({ request: importRequest, access_token: accessToken }),
+        needsMeta
+          ? cloudGoogleDriveFileMetadata({ file_id: pick.id, access_token: accessToken }).catch(() => null)
+          : Promise.resolve(null),
+      ]);
       setMainFile(null);
-      setMainCloud({ handle: res.import_handle, label: `${res.reference.filename} · Google Drive` });
+      setMainCloud(buildGoogleDriveAttachment(pick, res, meta, needsMeta, "main"));
     } catch (e) {
       if (e instanceof Error && e.message !== "cancelled") setFormErr(e.message);
     } finally {
@@ -539,7 +593,16 @@ export default function HomePage() {
         access_token: "",
       });
       setMainFile(null);
-      setMainCloud({ handle: res.import_handle, label: `${res.reference.filename} · Dropbox` });
+      setMainCloud({
+        handle: res.import_handle,
+        label: cloudAttachmentLabel(res.reference.filename, "dropbox"),
+        provider: "dropbox",
+        filename: res.reference.filename,
+        mimeType: res.reference.mime_type,
+        thumbnailUrl: null,
+        iconUrl: null,
+        webViewLink: null,
+      });
     } catch (e) {
       if (e instanceof Error && e.message !== "cancelled") setFormErr(e.message);
     } finally {
@@ -573,7 +636,16 @@ export default function HomePage() {
         access_token: "",
       });
       setMainFile(null);
-      setMainCloud({ handle: res.import_handle, label: `${res.reference.filename} · OneDrive` });
+      setMainCloud({
+        handle: res.import_handle,
+        label: cloudAttachmentLabel(res.reference.filename, "onedrive"),
+        provider: "onedrive",
+        filename: res.reference.filename,
+        mimeType: res.reference.mime_type,
+        thumbnailUrl: null,
+        iconUrl: null,
+        webViewLink: null,
+      });
     } catch (e) {
       if (e instanceof Error && e.message !== "cancelled") setFormErr(e.message);
     } finally {
@@ -596,18 +668,23 @@ export default function HomePage() {
       const { pick, accessToken } = await pickFromGoogleDrive({
         clientId: cloudCfg.google_client_id,
         pickerApiKey: cloudCfg.google_picker_api_key,
+        cloudProjectNumber: cloudCfg.google_cloud_project_number ?? undefined,
       });
-      const res = await cloudImport({
-        request: {
-          provider: "google_drive",
-          provider_file_id: pick.id,
-          filename: pick.name,
-          mime_type: pick.mimeType ?? null,
-          document_role: "supporting",
-        },
-        access_token: accessToken,
-      });
-      setSupportingCloud((prev) => [...prev, { handle: res.import_handle, label: `${res.reference.filename} · Google Drive` }]);
+      const needsMeta = !(pick.thumbnailUrl || "").trim();
+      const importRequest = {
+        provider: "google_drive" as const,
+        provider_file_id: pick.id,
+        filename: pick.name,
+        mime_type: pick.mimeType ?? null,
+        document_role: "supporting" as const,
+      };
+      const [res, meta] = await Promise.all([
+        cloudImport({ request: importRequest, access_token: accessToken }),
+        needsMeta
+          ? cloudGoogleDriveFileMetadata({ file_id: pick.id, access_token: accessToken }).catch(() => null)
+          : Promise.resolve(null),
+      ]);
+      setSupportingCloud((prev) => [...prev, buildGoogleDriveAttachment(pick, res, meta, needsMeta, "supporting")]);
     } catch (e) {
       if (e instanceof Error && e.message !== "cancelled") setFormErr(e.message);
     } finally {
@@ -639,7 +716,19 @@ export default function HomePage() {
         },
         access_token: "",
       });
-      setSupportingCloud((prev) => [...prev, { handle: res.import_handle, label: `${res.reference.filename} · Dropbox` }]);
+      setSupportingCloud((prev) => [
+        ...prev,
+        {
+          handle: res.import_handle,
+          label: cloudAttachmentLabel(res.reference.filename, "dropbox"),
+          provider: "dropbox" as const,
+          filename: res.reference.filename,
+          mimeType: res.reference.mime_type,
+          thumbnailUrl: null,
+          iconUrl: null,
+          webViewLink: null,
+        },
+      ]);
     } catch (e) {
       if (e instanceof Error && e.message !== "cancelled") setFormErr(e.message);
     } finally {
@@ -676,7 +765,19 @@ export default function HomePage() {
         },
         access_token: "",
       });
-      setSupportingCloud((prev) => [...prev, { handle: res.import_handle, label: `${res.reference.filename} · OneDrive` }]);
+      setSupportingCloud((prev) => [
+        ...prev,
+        {
+          handle: res.import_handle,
+          label: cloudAttachmentLabel(res.reference.filename, "onedrive"),
+          provider: "onedrive" as const,
+          filename: res.reference.filename,
+          mimeType: res.reference.mime_type,
+          thumbnailUrl: null,
+          iconUrl: null,
+          webViewLink: null,
+        },
+      ]);
     } catch (e) {
       if (e instanceof Error && e.message !== "cancelled") setFormErr(e.message);
     } finally {
@@ -876,11 +977,11 @@ export default function HomePage() {
                     onChange={(e) => applyMainFile(e.target.files?.[0] ?? null)}
                   />
                   <p className="text-sm text-zinc-800">
-                    {mainCloud ? mainCloud.label : mainFile ? mainFile.name : "Drop manuscript or tap “Upload from device”"}
+                    {mainCloud ? mainCloud.filename : mainFile ? mainFile.name : "Drop manuscript or tap “Upload from device”"}
                   </p>
                   <p className="mt-1 text-xs text-zinc-400">DOCX or PDF · up to {me.max_pages} pages</p>
                   {outputMode === "fix" &&
-                  (mainFile?.name ?? mainCloud?.label ?? "").toLowerCase().endsWith(".pdf") ? (
+                  (mainFile?.name ?? mainCloud?.filename ?? "").toLowerCase().endsWith(".pdf") ? (
                     <p className="mt-1 text-[11px] text-zinc-400">
                       Fix mode outputs a new Word file from extracted text — not an edited PDF.
                     </p>
@@ -909,6 +1010,14 @@ export default function HomePage() {
                     Choose from Google Drive
                   </button>
                 </div>
+                {mainCloud ? (
+                  <MainCloudAttachmentCard
+                    attachment={mainCloud}
+                    running={running}
+                    onRemove={() => setMainCloud(null)}
+                    onChange={() => void importMainFromGoogle()}
+                  />
+                ) : null}
                 {!cloudCfgFetched ? <p className="text-[11px] text-zinc-400">Checking cloud options…</p> : null}
                 {cloudCfgFetched && !googleDriveConfigured ? (
                   <p className="text-[11px] text-zinc-500">
@@ -1014,27 +1123,30 @@ export default function HomePage() {
                   </p>
                 ) : null}
                 {supporting.length > 0 || supportingCloud.length > 0 ? (
-                  <ul className="space-y-1.5 rounded-xl border border-zinc-100 bg-white/80 px-3 py-2 text-[11px] text-zinc-600">
-                    {supporting.map((f, i) => (
-                      <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-2">
-                        <span className="truncate">{f.name}</span>
-                        <span className="shrink-0 text-zinc-400">Device</span>
-                      </li>
-                    ))}
-                    {supportingCloud.map((c) => (
-                      <li key={c.handle} className="flex items-center justify-between gap-2">
-                        <span className="truncate pr-2">{c.label}</span>
-                        <button
-                          type="button"
-                          disabled={running}
-                          className="shrink-0 text-zinc-500 underline disabled:opacity-40"
-                          onClick={() => setSupportingCloud((prev) => prev.filter((x) => x.handle !== c.handle))}
-                        >
-                          Remove
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="space-y-2">
+                    {supporting.length > 0 ? (
+                      <ul className="space-y-1.5 rounded-xl border border-zinc-100 bg-white/80 px-3 py-2 text-[11px] text-zinc-600">
+                        {supporting.map((f, i) => (
+                          <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-2">
+                            <span className="truncate">{f.name}</span>
+                            <span className="shrink-0 text-zinc-400">Device</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {supportingCloud.length > 0 ? (
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {supportingCloud.map((c) => (
+                          <SupportingCloudAttachmentCard
+                            key={c.handle}
+                            attachment={c}
+                            running={running}
+                            onRemove={() => setSupportingCloud((prev) => prev.filter((x) => x.handle !== c.handle))}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                 ) : null}
                 {cloudCfgFetched && (cloudCfg?.dropbox_app_key || cloudCfg?.microsoft_client_id) ? (
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-zinc-100 pt-2 text-[11px] text-zinc-500">
