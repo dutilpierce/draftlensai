@@ -1,6 +1,7 @@
 import type { RegisteredPage } from "./types";
 
 const WAVE1 = "2026-05-11";
+const LEGAL_WAVE = "2026-05-13";
 
 function p(def: RegisteredPage): RegisteredPage {
   return def;
@@ -96,9 +97,9 @@ export const PAGE_REGISTRY: Record<string, RegisteredPage> = {
 
   "/contact": p({
     path: "/contact",
-    title: "Contact — DraftLens",
+    title: "Contact & support — DraftLens",
     description:
-      "Reach the DraftLens team for product questions, security reviews, or partnerships. Response times vary; please include context and your use case.",
+      "Reach DraftLens for product help, privacy and data requests, security reports, or billing questions. See also Privacy, Terms, and Data security.",
     h1: "Contact DraftLens",
     canonicalPath: "/contact",
     breadcrumb: [
@@ -106,14 +107,81 @@ export const PAGE_REGISTRY: Record<string, RegisteredPage> = {
       { name: "Contact", href: "/contact" },
     ],
     related: [
-      { href: "/editorial-policy", label: "Editorial policy" },
-      { href: "/pricing", label: "Pricing" },
+      { href: "/privacy", label: "Privacy Policy" },
+      { href: "/terms", label: "Terms of Service" },
+      { href: "/data-security", label: "Data security" },
       { href: "/feedback", label: "Feature feedback" },
     ],
     schemaProfile: "standard",
-    lastModified: WAVE1,
-    primaryTopic: "Contact DraftLens",
-    secondaryTopics: ["support", "sales"],
+    lastModified: LEGAL_WAVE,
+    primaryTopic: "DraftLens contact and support",
+    secondaryTopics: ["email support", "privacy requests", "security contact"],
+  }),
+
+  "/privacy": p({
+    path: "/privacy",
+    title: "Privacy Policy — DraftLens",
+    description:
+      "How DraftLens collects and uses account data, uploaded PDF and Word documents, AI model processing, Google Drive imports, Stripe billing, retention, and subprocessors—in plain English.",
+    h1: "Privacy Policy",
+    canonicalPath: "/privacy",
+    breadcrumb: [
+      { name: "Home", href: "/" },
+      { name: "Privacy Policy", href: "/privacy" },
+    ],
+    related: [
+      { href: "/terms", label: "Terms of Service" },
+      { href: "/data-security", label: "Data security" },
+      { href: "/contact", label: "Contact" },
+    ],
+    schemaProfile: "standard",
+    lastModified: LEGAL_WAVE,
+    primaryTopic: "DraftLens privacy policy",
+    secondaryTopics: ["data collection", "AI providers", "document retention"],
+  }),
+
+  "/terms": p({
+    path: "/terms",
+    title: "Terms of Service — DraftLens",
+    description:
+      "Terms for using DraftLens AI document review and fix features: no professional advice, user responsibilities, cloud integrations, Stripe billing, acceptable use, warranties, and liability limits.",
+    h1: "Terms of Service",
+    canonicalPath: "/terms",
+    breadcrumb: [
+      { name: "Home", href: "/" },
+      { name: "Terms of Service", href: "/terms" },
+    ],
+    related: [
+      { href: "/privacy", label: "Privacy Policy" },
+      { href: "/data-security", label: "Data security" },
+      { href: "/contact", label: "Contact" },
+    ],
+    schemaProfile: "standard",
+    lastModified: LEGAL_WAVE,
+    primaryTopic: "DraftLens terms of service",
+    secondaryTopics: ["user agreement", "acceptable use", "AI disclaimer"],
+  }),
+
+  "/data-security": p({
+    path: "/data-security",
+    title: "Data security & document handling — DraftLens",
+    description:
+      "Trust overview: how uploads are processed, what AI providers see, Google Drive scope, retention overview, sensitive documents, and what humans should verify—without overstating certifications.",
+    h1: "Data security & document handling",
+    canonicalPath: "/data-security",
+    breadcrumb: [
+      { name: "Home", href: "/" },
+      { name: "Data security", href: "/data-security" },
+    ],
+    related: [
+      { href: "/privacy", label: "Privacy Policy" },
+      { href: "/terms", label: "Terms of Service" },
+      { href: "/contact", label: "Contact" },
+    ],
+    schemaProfile: "standard",
+    lastModified: LEGAL_WAVE,
+    primaryTopic: "DraftLens data security",
+    secondaryTopics: ["document handling", "AI processing transparency", "retention"],
   }),
 
   "/feedback": p({

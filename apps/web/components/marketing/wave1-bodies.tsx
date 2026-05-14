@@ -308,17 +308,56 @@ export function AboutBody() {
 export function ContactBody() {
   return (
     <>
-      <ProseColumn>
+      <IntroBlock kicker="How to reach us">
         <p>
-          For product, security, data processing, or partnership questions, email the address published in your
-          deployment’s policy footer once available, or use the contact channel your team configures for production.
+          Use the addresses below for the type of request you have. Before publishing these in OAuth consoles or customer
+          contracts, confirm the inboxes exist or forward—see{" "}
+          <code className="rounded bg-ink-100 px-1">docs/trust-and-email-setup.md</code>.
         </p>
-        <p className="text-sm text-ink-500">
-          This template does not invent a support inbox. Set{" "}
-          <code className="rounded bg-ink-100 px-1">NEXT_PUBLIC_CONTACT_EMAIL</code> for display in Organization schema
-          when you are ready.
-        </p>
-      </ProseColumn>
+      </IntroBlock>
+
+      <SectionShell tone="warm">
+        <SectionHeading eyebrow="Email">Primary channels</SectionHeading>
+        <ProseColumn>
+          <ul>
+            <li>
+              <strong>Product & billing support:</strong>{" "}
+              <a href="mailto:support@draftlensai.com">support@draftlensai.com</a>
+            </li>
+            <li>
+              <strong>Privacy & data requests:</strong>{" "}
+              <a href="mailto:privacy@draftlensai.com">privacy@draftlensai.com</a>
+            </li>
+            <li>
+              <strong>Security reports:</strong>{" "}
+              <a href="mailto:security@draftlensai.com">security@draftlensai.com</a>
+            </li>
+          </ul>
+        </ProseColumn>
+      </SectionShell>
+
+      <SectionShell tone="cool">
+        <SectionHeading eyebrow="Self-serve">Feedback and policies</SectionHeading>
+        <ProseColumn>
+          <p>
+            Feature ideas and UX notes: <a href="/feedback">Feedback</a>
+          </p>
+          <p>
+            Trust and legal pages: <a href="/privacy">Privacy</a>, <a href="/terms">Terms</a>,{" "}
+            <a href="/data-security">Data security</a>
+          </p>
+        </ProseColumn>
+      </SectionShell>
+
+      <SectionShell>
+        <SectionHeading eyebrow="Schema">Marketing email env</SectionHeading>
+        <ProseColumn>
+          <p className="text-sm text-ink-500">
+            Optional: set <code className="rounded bg-ink-100 px-1">NEXT_PUBLIC_CONTACT_EMAIL</code> to the address you
+            want reflected in structured data (JSON-LD) for the public site—often the same as support.
+          </p>
+        </ProseColumn>
+      </SectionShell>
     </>
   );
 }

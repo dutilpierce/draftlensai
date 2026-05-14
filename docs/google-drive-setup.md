@@ -34,6 +34,21 @@ DraftLens uses scope **`https://www.googleapis.com/auth/drive.file`** (“Per-fi
 
 ---
 
+## 3b. OAuth branding & public policy links (verification)
+
+When Google (or your security reviewers) asks for **application home page**, **privacy policy**, and **terms of service** for OAuth branding or verification, use the live public pages:
+
+| Field | Paste this value |
+|-------|------------------|
+| **Application home page** | `https://www.draftlensai.com` |
+| **Application privacy policy link** | `https://www.draftlensai.com/privacy` |
+| **Application terms of service link** | `https://www.draftlensai.com/terms` |
+| **Authorized domain** (where the console asks for a domain, not a full URL) | `draftlensai.com` |
+
+**Requirements:** those URLs must load over **HTTPS** for real users without a login wall. Set `NEXT_PUBLIC_SITE_URL=https://www.draftlensai.com` on the Next.js deployment so canonical metadata and `sitemap.xml` match production (see `docs/trust-and-email-setup.md`).
+
+---
+
 ## 4. OAuth 2.0 Client ID (Web application)
 
 1. **APIs & Services → Credentials → Create credentials → OAuth client ID**.

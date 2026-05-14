@@ -162,6 +162,7 @@ See **`docs/google-drive-setup.md`** and **`docs/cloud-file-integration.md`** fo
 
 ## Google Drive & cloud import/export
 
+- **`docs/trust-and-email-setup.md`** — production `www` URLs, `NEXT_PUBLIC_SITE_URL`, and **TODO** for `support@` / `privacy@` / `security@` mailboxes before launch.
 - **`docs/google-drive-setup.md`** — Google Cloud checklist (APIs, OAuth client type, scopes, JavaScript origins, Picker API key restrictions, production and Vercel preview URLs, local dev).
 - **`docs/cloud-file-integration.md`** — HTTP contract between Next.js and FastAPI (`/api/cloud/*`), token handling, and import/export behavior.
 

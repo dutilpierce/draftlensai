@@ -30,6 +30,22 @@ export default function AppSectionLayout({ children }: { children: ReactNode }) 
         </div>
       </div>
       {children}
+      <div className="border-t border-line/80 bg-white/80 px-5 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-5xl flex-wrap justify-center gap-x-4 gap-y-2 text-center text-[11px] text-ink-500">
+          <Link href="/privacy" className="hover:text-ink-900 underline-offset-4 hover:underline">
+            Privacy
+          </Link>
+          <Link href="/terms" className="hover:text-ink-900 underline-offset-4 hover:underline">
+            Terms
+          </Link>
+          <Link href="/data-security" className="hover:text-ink-900 underline-offset-4 hover:underline">
+            Data security
+          </Link>
+          <Link href="/contact" className="hover:text-ink-900 underline-offset-4 hover:underline">
+            Contact
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

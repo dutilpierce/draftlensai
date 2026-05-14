@@ -23,6 +23,14 @@ const footerCols = [
     ],
   },
   {
+    title: "Trust",
+    links: [
+      { href: "/privacy", label: "Privacy" },
+      { href: "/terms", label: "Terms" },
+      { href: "/data-security", label: "Data security" },
+    ],
+  },
+  {
     title: "Company",
     links: [
       { href: "/about", label: "About" },
@@ -44,7 +52,7 @@ export default function SiteFooter() {
           <span className="sr-only">DraftLens home</span>
         </Link>
       </div>
-      <div className="mx-auto grid max-w-5xl gap-8 px-5 pb-12 sm:grid-cols-3 sm:px-6">
+      <div className="mx-auto grid max-w-5xl gap-8 px-5 pb-12 sm:grid-cols-2 lg:grid-cols-4 sm:px-6">
         {footerCols.map((col) => (
           <div key={col.title}>
             <h2 className="text-xs font-medium uppercase tracking-[0.16em] text-ink-400">{col.title}</h2>
